@@ -28,7 +28,7 @@ jobs:
         id: set-matrix
         run: |
           all_files=$(echo '${{ steps.getfile.outputs.all }}' | jq -r '.[]')
-          if echo "$all_files" | grep -q ".github/workflows/docker.yaml"; then
+          if echo "$all_files" | grep -q ".github/workflows/build.yaml"; then
             images=($(ls -d images/* | sed 's|images/||'))
             matrix_value=$(echo "[\"${images[@]}\"]" | sed 's/ /","/g')
           else
