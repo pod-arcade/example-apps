@@ -9,6 +9,7 @@ RUN apt-get update && \
     wget && \
     rm -rf /var/lib/apt/lists/*
 
+USER ubuntu
 
 ENTRYPOINT [ "/usr/games/yuzu" ]
 
