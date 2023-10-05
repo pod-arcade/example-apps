@@ -3,8 +3,8 @@ on:
   push:
     branches: ["main"]
     paths:
-      - 'images/**'
-      - '.github/workflows/build.yaml'
+      - "images/**"
+      - ".github/workflows/build.yaml"
   workflow_dispatch: {}
 env:
   REGISTRY: ghcr.io
@@ -37,10 +37,7 @@ jobs:
             do
               if [[ $file == images/* ]]; then
                 image_name=$(echo $file | cut -d'/' -f2)
-                if [[ ! -f "images/$image_name/_NOBUILD" ]]; then
-                  images+=("$image_name")
-                  echo "Skipping $image_name because it has a NOBUILD file."
-                fi
+                images+=("$image_name")
               fi
             done
             # Removing duplicate entries
