@@ -60,7 +60,7 @@ jobs:
       contents: read
       packages: write
     env:
-      IMAGE_NAME: ${{ github.repository_owner }}/${{ matrix.image }}
+      IMAGE_NAME: ${{ github.repository_owner }}/example-${{ matrix.image }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -76,7 +76,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/example-${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - name: Build and push Docker image
         uses: docker/build-push-action@4c1b68d83ad20cc1a09620ca477d5bbbb5fa14d0
         with:
