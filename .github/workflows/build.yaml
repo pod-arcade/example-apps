@@ -1,0 +1,88 @@
+name: Create and publish Docker images
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'images/**'
+      - '.github/workflows/build.yaml'
+  workflow_dispatch: {}
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  find-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get changed files
+        id: getfile
+        uses: lots0logs/gh-action-get-changed-files@2.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine changed images or rebuild all
+        id: set-matrix
+        run: |
+          all_files=$(echo '${{ steps.getfile.outputs.all }}' | jq -r '.[]')
+          if echo "$all_files" | grep -q ".github/workflows/docker.yaml"; then
+            images=($(ls -d images/* | sed 's|images/||'))
+            matrix_value=$(echo "[\"${images[@]}\"]" | sed 's/ /","/g')
+          else
+            images=()
+            for file in $all_files
+            do
+              if [[ $file == images/* ]]; then
+                image_name=$(echo $file | cut -d'/' -f2)
+                if [[ ! -f "images/$image_name/_NOBUILD" ]]; then
+                  images+=("$image_name")
+                  echo "Skipping $image_name because it has a NOBUILD file."
+                fi
+              fi
+            done
+            # Removing duplicate entries
+            images=($(echo "${images[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+            matrix_value="[\"${images[*]}\"]"
+          fi
+          echo "matrix=${matrix_value}" >> $GITHUB_OUTPUT
+
+  build-and-push-image:
+    needs: find-changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{fromJson(needs.find-changes.outputs.matrix)}}
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_NAME: ${{ github.repository_owner }}/${{ matrix.image }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/example-${{ env.IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@4c1b68d83ad20cc1a09620ca477d5bbbb5fa14d0
+        with:
+          context: ./images/${{ matrix.image }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
