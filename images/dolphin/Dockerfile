@@ -1,0 +1,15 @@
+FROM ubuntu:23.10
+
+# Install all necessary packages
+RUN apt-get update && \
+    apt-get install -y \
+    mesa-utils-extra \
+    dolphin-emu \
+    pulseaudio \
+    wget && \
+    rm -rf /var/lib/apt/lists/*
+
+USER ubuntu
+
+ENTRYPOINT [ "/usr/games/dolphin-emu" ]
+
