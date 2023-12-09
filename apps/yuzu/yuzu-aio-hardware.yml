@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  yuzu:
+    image: ghcr.io/pod-arcade/example-yuzu-aio:main
+    restart: on-failure
+    privileged: true
+    environment:
+      - MQTT_HOST=ws://localhost:8080/mqtt
+      - DESKTOP_ID=dolphin-aio
+      # - DESKTOP_PSK=""
+    volumes:
+      - /dev/dri:/host/dev/dri
+      - /dev/uinput:/host/dev/uinput

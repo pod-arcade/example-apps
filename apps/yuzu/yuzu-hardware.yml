@@ -4,29 +4,20 @@ services:
   sway:
     image: ghcr.io/pod-arcade/desktop:main
     environment:
-      - DISABLE_HW_ACCEL=false
-      # - WLR_RENDERER=vulkan
-      # - WLR_RENDERER=pixman
-      # - WLR_RENDERER=gl
-      - WLR_RENDERER=gles2
-      - WLR_BACKENDS=headless
-      - NOVNC=false
-      - RESOLUTION=1280x720
-      - DRI_DEVICE_MODE=MKNOD
-    ports:
-      - "6900:5900"
-      - "7900:7900"
+      - MQTT_HOST=ws://localhost:8080/mqtt
+      - DESKTOP_ID=dolphin-aio
+      # - DESKTOP_PSK=""
+    user: root
     privileged: true
     volumes:
       - shared_pulse:/tmp/pulse
       - shared_sway:/tmp/sway
       - shared_x11:/tmp/.X11-unix
       - shared_dri:/dev/dri
-      - /dev/dri:/dev/host-dri
+      - /dev/dri:/host/dev/dri
       
   yuzu:
-    image: ghcr.io/pod-arcade/example-yuzu
-    
+    image: ghcr.io/pod-arcade/example-yuzu:main
     restart: on-failure
     links:
       - sway
@@ -42,12 +33,6 @@ services:
       - shared_sway:/tmp/sway
       - shared_x11:/tmp/.X11-unix
       - shared_dri:/dev/dri
-    command:
-      # - "sh"
-      # - "-c"
-      # - |
-      #   sleep 10 # Wait for sway to start
-      #   retroarch --verbose
 volumes:
   shared_pulse:
   shared_sway:
