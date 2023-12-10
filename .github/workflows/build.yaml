@@ -5,7 +5,12 @@ on:
     paths:
       - "images/**"
       - ".github/workflows/build.yaml"
-  workflow_dispatch: {}
+  workflow_dispatch: 
+    inputs:
+      imageName:
+        description: 'Name of the image to build (leave empty to build all changed images)'
+        required: false
+        default: ''
 env:
   REGISTRY: ghcr.io
 
@@ -27,22 +32,32 @@ jobs:
       - name: Determine changed images or rebuild all
         id: set-matrix
         run: |
-          all_files=$(echo '${{ steps.getfile.outputs.all }}' | jq -r '.[]')
-          if echo "$all_files" | grep -q ".github/workflows/build.yaml"; then
-            images=($(ls -d images/* | sed 's|images/||'))
-            matrix_value=$(echo "[\"${images[@]}\"]" | sed 's/ /","/g')
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Special Case for workflow_dispatch
+            if [ -n "${{ github.event.inputs.imageName }}" ]; then
+              images=($(ls -d images/* | sed 's|images/||'))
+              matrix_value=$(echo "[\"${images[@]}\"]" | sed 's/ /","/g')
+            else
+              matrix_value="[\"${{ github.event.inputs.imageName }}\"]"
+            fi
           else
-            images=()
-            for file in $all_files
-            do
-              if [[ $file == images/* ]]; then
-                image_name=$(echo $file | cut -d'/' -f2)
-                images+=("$image_name")
-              fi
-            done
-            # Removing duplicate entries
-            images=($(echo "${images[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-            matrix_value="[\"${images[*]}\"]"
+            all_files=$(echo '${{ steps.getfile.outputs.all }}' | jq -r '.[]')
+            if echo "$all_files" | grep -q ".github/workflows/build.yaml"; then
+              images=($(ls -d images/* | sed 's|images/||'))
+              matrix_value=$(echo "[\"${images[@]}\"]" | sed 's/ /","/g')
+            else
+              images=()
+              for file in $all_files
+              do
+                if [[ $file == images/* ]]; then
+                  image_name=$(echo $file | cut -d'/' -f2)
+                  images+=("$image_name")
+                fi
+              done
+              # Removing duplicate entries
+              images=($(echo "${images[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+              matrix_value="[\"${images[*]}\"]"
+            fi
           fi
           echo "matrix=${matrix_value}" >> $GITHUB_OUTPUT
 
